@@ -16,22 +16,22 @@ namespace Cadorinator.Infrastructure
         public virtual DbSet<ProviderSource> ProviderSources { get; set; }
         public virtual DbSet<Sample> Samples { get; set; }
 
-        private readonly string connectionString;
+        private readonly string _connectionString;
         private readonly string _mainDbName;
 
         public MainContext() { }
 
         public MainContext(string conn, string mainDbName)
         {
-            connectionString = Regex.Replace(conn, @"%AppData%", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            Directory.CreateDirectory(conn);
             _mainDbName = mainDbName;
-            Directory.CreateDirectory(connectionString);
+            _connectionString = conn;
             this.Database.Migrate();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {            
-            optionsBuilder.UseSqlite("Data Source=" + connectionString + _mainDbName + ";");
+            optionsBuilder.UseSqlite("Data Source=" + _connectionString + _mainDbName + ";");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -60,6 +60,10 @@ namespace Cadorinator.Infrastructure
                 entity.Property(e => e.TimeStamp)
                     .IsRequired()
                     .HasColumnType("DATETIME");
+
+                entity.Property(e => e.Parameters)
+                    .IsRequired()
+                    .HasColumnType("Parameters");
             });
 
             modelBuilder.Entity<ProjectionsSchedule>(entity =>

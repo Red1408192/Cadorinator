@@ -10,5 +10,6 @@ namespace Cadorinator.Infrastructure.Entity
         public long PendingCommandId { get; set; }
         public long CommandId { get; set; }
         public DateTime TimeStamp { get; set; }
+        public string Parameters { get; set; }
     }
 }

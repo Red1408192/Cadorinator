@@ -7,7 +7,7 @@ namespace Cadorinator.ServiceContract.Settings
         int DefaultDelay { get; set; }
         int[] SamplesRange { get; set; }
         string MainDbName { get; set; }
-        string DbPath { get; set; }
+        string FilePath { get; set; }
         bool RemotePublish { get; set; }
         string GoogleDriveToken { get; set; }
         bool Backup { get; set; }
@@ -26,7 +26,7 @@ namespace Cadorinator.ServiceContract.Settings
         public int BackupFrequency { get; set; } = 1;
         public bool AutoReport { get; set; } = true;
         public (byte, byte) AutoReportSchedule { get; set; } = (6, 8);
-        public string MainDbName { get; set; } = ".\\Cadorinator.db";
-        public string DbPath { get; set; } = ".\\";
+        public string MainDbName { get; set; } = "Cadorinator.db";
+        public string FilePath { get; set; } = "%AppData%\\Cadorinator\\";
     }
 }

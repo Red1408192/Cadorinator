@@ -7,7 +7,7 @@ namespace Cadorinator.Infrastructure.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(name: "Parameters", table: "PendingCommand", type: "VARCHAR(200)");
+            migrationBuilder.AddColumn<string>(name: "Parameters", table: "PendingCommand", type: "VARCHAR(600)");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
