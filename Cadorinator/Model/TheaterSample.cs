@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cadorinator.Service.Model
 {
-    public class TheaterSeats
+    public class TheaterSample
     {
         public List<Seat> Bought { get; set; }
         public List<Seat> Locked { get; set; }

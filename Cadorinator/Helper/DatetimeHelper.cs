@@ -12,7 +12,7 @@ namespace Cadorinator.Service.Helper
         /// <summary>
         /// Only for future dates
         /// </summary>
-        public static DateTimeOffset ParseItalianDate(string input)
+        public static DateTimeOffset ParseScheduleDate(string input)
         {
             var currentDay = DateTime.Now.Day;
             var currentMonth = DateTime.Now.Month;

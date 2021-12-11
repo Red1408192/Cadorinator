@@ -15,8 +15,10 @@ namespace Cadorinator.Infrastructure.Entity
         public long ProviderId { get; set; }
         public string ProviderDomain { get; set; }
         public long ProviderSource { get; set; }
+        public long CityId { get; set; }
 
         public virtual ProviderSource ProviderSourceNavigation { get; set; }
+        public virtual City CityNavigation { get; set; }
         public virtual ICollection<ProjectionsSchedule> ProjectionsSchedules { get; set; }
     }
 }

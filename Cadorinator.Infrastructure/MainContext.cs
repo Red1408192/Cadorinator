@@ -15,6 +15,7 @@ namespace Cadorinator.Infrastructure
         public virtual DbSet<Provider> Providers { get; set; }
         public virtual DbSet<ProviderSource> ProviderSources { get; set; }
         public virtual DbSet<Sample> Samples { get; set; }
+        public virtual DbSet<City> Cities { get; set; }
 
         private readonly string _connectionString;
         private readonly string _mainDbName;
@@ -104,6 +105,10 @@ namespace Cadorinator.Infrastructure
                 entity.HasOne(d => d.ProviderSourceNavigation)
                     .WithMany(p => p.Providers)
                     .HasForeignKey(d => d.ProviderSource);
+
+                entity.HasOne(d => d.CityNavigation)
+                    .WithMany(p => p.Providers)
+                    .HasForeignKey(d => d.CityId);
             });
 
             modelBuilder.Entity<ProviderSource>(entity =>
@@ -142,6 +147,18 @@ namespace Cadorinator.Infrastructure
                 entity.HasOne(d => d.ProjectionsSchedule)
                     .WithMany(p => p.Samples)
                     .HasForeignKey(d => d.ProjectionsScheduleId);
+            });
+
+            modelBuilder.Entity<City>(entity =>
+            {
+                entity.ToTable("City");
+
+                entity.HasIndex(e => e.CityId, "IX_City_CityId")
+                    .IsUnique();
+
+                entity.Property(e => e.CityName)
+                .IsRequired()
+                .HasColumnType("VARCHAR(30)");
             });
 
             OnModelCreatingPartial(modelBuilder);

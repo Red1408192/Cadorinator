@@ -1,29 +1,29 @@
 ﻿using Cadorinator.Infrastructure;
 using Cadorinator.Infrastructure.Entity;
-using Cadorinator.Service.Helper;
 using Cadorinator.Service.Model;
 using Cadorinator.Service.Service.Interface;
+using Cadorinator.ServiceContract.Settings;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Cadorinator.Service.Service
 {
-
-    public class EighteenTicketV2Service : IProviderService
+    public class EighteenTicketV1Service : IProviderService
     {
-        public int ProviderSourceId => 2;
+        public int ProviderSourceId => 1;
 
         private readonly IDALService _cadorinatorService;
+        private readonly ICadorinatorSettings _settings;
 
-        public EighteenTicketV2Service(IDALService service)
+        public EighteenTicketV1Service(IDALService service, ICadorinatorSettings settings)
         {
             _cadorinatorService = service;
+            _settings = settings;
         }
 
         public async Task RegisterSchedules(Provider source)
@@ -32,31 +32,33 @@ namespace Cadorinator.Service.Service
             var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/");
             if (htmlDoc == null) return;
 
-            var nodes = htmlDoc.DocumentNode.SelectNodes("//*[contains(@class,'m18-film-projection-block container col-md-12')]");
+            var nodes = htmlDoc.DocumentNode.SelectNodes("//*[contains(@class,'movie movie--preview release border border-light')]");
 
             foreach (var node in nodes)
             {
-                var filmTitle = node.SelectSingleNode(".//h4")?.InnerText;
+                var filmTitle = node.SelectSingleNode(".//*[contains(@class,'movie__title')]")?.InnerText.Replace("\n", "");
                 if (filmTitle == null) continue;
-                var innerNodes = node.SelectNodes(".//*[contains(@class,'m18-home-projection')]");
-                if (innerNodes == null) continue;
-                foreach(var panel in innerNodes)
+                var timeSelector = node.SelectSingleNode(".//*[contains(@class,'time-select')]");
+                if (timeSelector == null) continue;
+                var filmId = Regex.Match(timeSelector.Attributes["id"]?.Value, "[0-9]{4,}(?!-)");
+                if (filmId == null) continue;
+
+                await Task.Delay(_settings.DefaultDelay);
+                var innerPage = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/film/{filmId}");
+                var results = innerPage.DocumentNode.SelectNodes("//*[contains(@class,'film-projection smooth-scroller')]");
+
+                foreach(var innerNode in results)
                 {
-                    var innerHtml = panel.Attributes["href"]?.Value;
-                    if (innerHtml == null) continue;
-
-
-                    if (long.TryParse(panel.Attributes["data-time"]?.Value, out var unixTime))
+                    if (DateTime.TryParse(innerNode.Attributes["data-date"]?.Value, out var date))
                     {
-                        var scheduletime = DateTimeOffset.FromUnixTimeMilliseconds(unixTime).ToUniversalTime();
-                        var film = await _cadorinatorService.UpselectFilm(filmTitle, scheduletime);
-
+                        var film = await _cadorinatorService.UpselectFilm(filmTitle, date.ToUniversalTime());
+                        var projectionId = innerNode.Attributes["data-id"]?.Value;
                         var schedule = new ProjectionsSchedule()
                         {
                             FilmId = film.FilmId,
-                            ProjectionTimestamp = scheduletime.UtcDateTime,
+                            ProjectionTimestamp = date.ToUniversalTime(),
                             ProviderId = source.ProviderId,
-                            SourceEndpoint = innerHtml,
+                            SourceEndpoint = $"https://{source.ProviderDomain}seats/{ projectionId }?caller_id=0",
                             ThreaterId = 1
                         };
 
@@ -68,21 +70,13 @@ namespace Cadorinator.Service.Service
 
         public async Task SampleData(ProjectionsSchedule schedule)
         {
-            var filmPage = await new HtmlWeb().LoadFromWebAsync(schedule.SourceEndpoint);
-            var nodes = filmPage.DocumentNode.SelectNodes("//*[contains(@class,'label label-success film-projection m18-label-pj smooth-scroller')]");
-
-            var node = nodes.FirstOrDefault(x => DatetimeHelper.ParseScheduleDate(x.Attributes["data-date"]?.Value).UtcDateTime == schedule.ProjectionTimestamp);
-            if (node == null) return;
-
             using (var client = new HttpClient())
             {
-
                 var baseAddress = $"https://{schedule.Provider.ProviderDomain}/";
-                var projectionId = node.Attributes["data-id"].Value;
 
                 var request = new HttpRequestMessage()
                 {
-                    RequestUri = new Uri(baseAddress + $"seats/{projectionId}?caller_id=0"),
+                    RequestUri = new Uri(schedule.SourceEndpoint),
                     Method = HttpMethod.Get,
                 };
 
