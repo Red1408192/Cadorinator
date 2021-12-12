@@ -15,6 +15,7 @@ namespace Cadorinator.Infrastructure.Entity
         public long ReservedSeats { get; set; }
         public long QuarantinedSeats { get; set; }
         public long TotalSeats { get; set; }
+        public string ETA { get; set; }
 
         public virtual ProjectionsSchedule ProjectionsSchedule { get; set; }
     }

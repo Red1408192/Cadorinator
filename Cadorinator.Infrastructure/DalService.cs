@@ -12,7 +12,7 @@ namespace Cadorinator.Infrastructure
     {
         Task AddSchedule(ProjectionsSchedule schedule);
         Task<IEnumerable<Provider>> ListProvidersAsync(long? providerSource = null);
-        Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats);
+        Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA);
         Task<Film> UpselectFilm(string filmName, DateTimeOffset projectionScehdule);
         Task<IEnumerable<ProjectionsSchedule>> ListProjectionsScheduleAsync(TimeSpan timeSpan);
     }
@@ -47,18 +47,6 @@ namespace Cadorinator.Infrastructure
             }
         }
 
-        public async Task<IEnumerable<ProjectionsSchedule>> GetActiveSchedules()
-        {
-            using (var db = dbContextFactory.Create())
-            {
-                return await db.ProjectionsSchedules
-                    .Where(x => x.ProjectionTimestamp > DateTime.UtcNow)
-                    .Include(b => b.Film)
-                    .Include(b => b.Provider)
-                    .ToListAsync();
-            }
-        }
-
         public async Task<Film> UpselectFilm(string filmName, DateTimeOffset projectionScehdule)
         {
             using (var db = dbContextFactory.Create())
@@ -87,13 +75,14 @@ namespace Cadorinator.Infrastructure
             }
         }
 
-        public async Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats)
+        public async Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA)
         {
             using(var db = dbContextFactory.Create())
             {
                 await db.Samples.AddAsync(new Sample()
                 {
                     SampleTimestamp = DateTime.UtcNow,
+                    ETA = FormatHelper.FormatEta(secondsETA),
                     ProjectionsScheduleId = projectionsScheduleId,
                     BoughtSeats = boughtSeats,
                     LockedSeats = lockedSeats,
@@ -107,9 +96,15 @@ namespace Cadorinator.Infrastructure
 
         public async Task<IEnumerable<ProjectionsSchedule>> ListProjectionsScheduleAsync(TimeSpan timeSpan)
         {
+            var From = DateTime.UtcNow;
+            var To = DateTime.UtcNow.Add(timeSpan);
+
             using (var db = dbContextFactory.Create())
             {
-                return await db.ProjectionsSchedules.Where(x => x.ProjectionTimestamp > DateTime.UtcNow && x.ProjectionTimestamp < DateTime.UtcNow.Add(timeSpan)).ToListAsync();
+                return await db.ProjectionsSchedules
+                    .Where(x => x.ProjectionTimestamp > From && x.ProjectionTimestamp < To)
+                    .Include(x => x.Provider)
+                    .ToListAsync();
             }
         }
     }

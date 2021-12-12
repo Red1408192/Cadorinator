@@ -3,6 +3,7 @@ using Cadorinator.Infrastructure.Entity;
 using Cadorinator.Service.Helper;
 using Cadorinator.Service.Model;
 using Cadorinator.Service.Service.Interface;
+using Cadorinator.ServiceContract.Settings;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using System;
@@ -20,19 +21,28 @@ namespace Cadorinator.Service.Service
         public int ProviderSourceId => 2;
 
         private readonly IDALService _cadorinatorService;
+        private readonly ICadorinatorSettings _settings;
 
-        public EighteenTicketV2Service(IDALService service)
+        public EighteenTicketV2Service(IDALService service, ICadorinatorSettings settings)
         {
             _cadorinatorService = service;
+            _settings = settings;
         }
 
         public async Task RegisterSchedules(Provider source)
         {
-            HtmlWeb web = new HtmlWeb();
-            var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/");
-            if (htmlDoc == null) return;
+            int tries = 0;
+            OuterRequest:
+                await Task.Delay(_settings.DefaultDelay * tries);
+                tries++;
+                HtmlWeb web = new HtmlWeb();
+                var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/");
+                if (htmlDoc == null) return;
+                if (htmlDoc.ParsedText.Length < 80 && tries < 10) goto OuterRequest;
+
 
             var nodes = htmlDoc.DocumentNode.SelectNodes("//*[contains(@class,'m18-film-projection-block container col-md-12')]");
+            if (nodes == null) return;
 
             foreach (var node in nodes)
             {
@@ -66,17 +76,23 @@ namespace Cadorinator.Service.Service
             }
         }
 
-        public async Task SampleData(ProjectionsSchedule schedule)
+        public async Task SampleData(ProjectionsSchedule schedule, int secondsETA)
         {
-            var filmPage = await new HtmlWeb().LoadFromWebAsync(schedule.SourceEndpoint);
+            int tries = 0;
+            Request:
+                await Task.Delay(_settings.DefaultDelay * tries);
+                tries++;
+                var filmPage = await new HtmlWeb().LoadFromWebAsync(schedule.SourceEndpoint);
+                if (filmPage.ParsedText.Length < 80 && tries < 10) goto Request;
+
             var nodes = filmPage.DocumentNode.SelectNodes("//*[contains(@class,'label label-success film-projection m18-label-pj smooth-scroller')]");
+            if (nodes == null) return;
 
             var node = nodes.FirstOrDefault(x => DatetimeHelper.ParseScheduleDate(x.Attributes["data-date"]?.Value).UtcDateTime == schedule.ProjectionTimestamp);
             if (node == null) return;
 
             using (var client = new HttpClient())
             {
-
                 var baseAddress = $"https://{schedule.Provider.ProviderDomain}/";
                 var projectionId = node.Attributes["data-id"].Value;
 
@@ -90,11 +106,19 @@ namespace Cadorinator.Service.Service
                 request.Headers.Add("Accept", "*/*");
                 request.Headers.Add("Host", schedule.Provider.ProviderDomain);
 
-                var response = await client.SendAsync(request);
-                var json = await response.Content.ReadAsStringAsync();
-                var result = JsonConvert.DeserializeObject<TheaterSample>(json);
+                int InnerTries = 0;
 
-                await _cadorinatorService.LoadSample(schedule.ProjectionsScheduleId, result.Bought.Count, result.Locked.Count, result.Reserved.Count, result.Quarantined.Count, result.Total);
+                InnerRequest:
+                    await Task.Delay(_settings.DefaultDelay * InnerTries);
+                    InnerTries++;
+                    var response = await client.SendAsync(request);
+                    if (response.StatusCode != System.Net.HttpStatusCode.OK && tries < 10) goto InnerRequest;
+
+                var json = await response?.Content?.ReadAsStringAsync();
+                var result = JsonConvert.DeserializeObject<TheaterSample>(json);
+                if (result == null) return;
+
+                await _cadorinatorService.LoadSample(schedule.ProjectionsScheduleId, result.Bought.Count, result.Locked.Count, result.Reserved.Count, result.Quarantined.Count, result.Total, secondsETA);
             }
         }
     }

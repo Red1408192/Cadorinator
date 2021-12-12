@@ -7,6 +7,6 @@ namespace Cadorinator.Service.Service.Interface
     {
         int ProviderSourceId { get; }
         Task RegisterSchedules(Provider source);
-        Task SampleData(ProjectionsSchedule schedule);
+        Task SampleData(ProjectionsSchedule schedule, int secondsETA);
     }
 }
