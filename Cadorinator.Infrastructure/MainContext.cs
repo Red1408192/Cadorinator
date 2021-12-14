@@ -1,5 +1,6 @@
 ﻿using Cadorinator.Infrastructure.Entity;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -19,15 +20,25 @@ namespace Cadorinator.Infrastructure
 
         private readonly string _connectionString;
         private readonly string _mainDbName;
+        private readonly ILogger _logger;
 
         public MainContext() { }
 
-        public MainContext(string conn, string mainDbName)
+        public MainContext(string conn, string mainDbName, ILogger logger)
         {
-            Directory.CreateDirectory(conn);
-            _mainDbName = mainDbName;
-            _connectionString = conn;
-            this.Database.Migrate();
+            try
+            {
+                _logger = logger;
+                _mainDbName = mainDbName;
+                _connectionString = conn;
+
+                Directory.CreateDirectory(conn);
+                this.Database.Migrate();
+            }
+            catch(Exception ex)
+            {
+                _logger.Error(ex, $"{DateTime.Now} [Ex] - exception during context creation {ex.Message}");
+            }
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

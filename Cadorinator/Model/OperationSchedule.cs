@@ -1,4 +1,5 @@
 ﻿using Cadorinator.Model;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,35 +10,46 @@ namespace Cadorinator.Service.Model
     {
         private SortedList<long, Operation> Schedule = new SortedList<long, Operation>();
         private int _maxOffset;
+        private ILogger _logger;
 
-        public OperationSchedule(int maxOffset)
+        public OperationSchedule(int maxOffset, ILogger logger)
         {
             _maxOffset = maxOffset;
+            _logger = logger;
         }
 
         public bool AddOperation(Operation operation, int delaySeconds = 0, int granularity = 4, bool required = false)
         {
-            if (delaySeconds < _maxOffset && delaySeconds > -_maxOffset || required)
+            try
             {
-                var targetTime = operation.ProspectedTime.ToUniversalTime().AddSeconds(delaySeconds).ToBinary();
-                if (this.Schedule.ContainsKey(targetTime))
+                if (delaySeconds < _maxOffset && delaySeconds > -_maxOffset || required)
                 {
-                    var newDelay = delaySeconds >= 0 ? (delaySeconds * -1) - granularity : delaySeconds * -1;
-                    return this.AddOperation(operation, newDelay);
+                    var targetTime = operation.ProspectedTime.ToUniversalTime().AddSeconds(delaySeconds).ToBinary();
+                    if (this.Schedule.ContainsKey(targetTime))
+                    {
+                        var newDelay = delaySeconds >= 0 ? (delaySeconds * -1) - granularity : delaySeconds * -1;
+                        return this.AddOperation(operation, newDelay);
+                    }
+                    else
+                    {
+                        return Schedule.TryAdd(targetTime, operation);
+                    }
+                }
+                else if (granularity > 1)
+                {
+                    return AddOperation(operation, 0, granularity / 2);
                 }
                 else
                 {
-                    return Schedule.TryAdd(targetTime, operation);
+                    return false;
                 }
             }
-            else if (granularity > 1)
+            catch(Exception ex)
             {
-                return AddOperation(operation, 0, granularity / 2);
-            }
-            else
-            {
+                _logger.Error(ex, $"Exception during add operation");
                 return false;
             }
+
         }
         public bool AddOperations(IList<Operation> operations)
         {
