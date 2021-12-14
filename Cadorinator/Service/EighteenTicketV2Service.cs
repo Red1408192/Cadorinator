@@ -109,8 +109,8 @@ namespace Cadorinator.Service.Service
                 int InnerTries = 0;
 
                 InnerRequest:
-                    await Task.Delay(_settings.DefaultDelay * InnerTries);
                     InnerTries++;
+                    await Task.Delay(_settings.DefaultDelay * InnerTries);
                     var response = await client.SendAsync(request);
                     if (response.StatusCode != System.Net.HttpStatusCode.OK && tries < 10) goto InnerRequest;
 

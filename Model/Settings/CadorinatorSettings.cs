@@ -5,8 +5,10 @@ namespace Cadorinator.ServiceContract.Settings
     public interface ICadorinatorSettings
     {
         int DefaultDelay { get; set; }
+        int Reactivity { get; set; }
         int PollerTimeSpan { get; set; }
         int SchedulerTimeSpan { get; set; }
+        int MaxRequestOffset { get; set; }
         int[] SamplesRange { get; set; }
         string MainDbName { get; set; }
         string FilePath { get; set; }
@@ -20,10 +22,12 @@ namespace Cadorinator.ServiceContract.Settings
 
     public class CadorinatorSettings : ICadorinatorSettings
     {
-        public int DefaultDelay { get; set; } = 200;
-        public int PollerTimeSpan { get; set; } = 12;
-        public int SchedulerTimeSpan { get; set; } = 2;
-        public int[] SamplesRange { get; set; } = new[] { 43200, 21600, 10800, 7200, 3600, 1800, 1200, 600, 300 }; //12h, 6h, 3h, 2h, 1h, 30m, 20m, 10m, 5m
+        public int DefaultDelay { get; set; } = 600;
+        public int Reactivity { get; set; } = 200;
+        public int PollerTimeSpan { get; set; } = 20;
+        public int SchedulerTimeSpan { get; set; } = 60;
+        public int MaxRequestOffset { get; set; } = 150;
+        public int[] SamplesRange { get; set; } = new[] { 43200, 21600, 10800, 7200, 3600, 1800, 1200, 600, 300, -300 }; //12h, 6h, 3h, 2h, 1h, 30m, 20m, 10m, 5m, -5m
         public bool RemotePublish { get; set; } = false;
         public string GoogleDriveToken { get; set; } = "";
         public bool Backup { get; set; } = true;

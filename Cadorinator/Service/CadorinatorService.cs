@@ -1,6 +1,7 @@
 ﻿using Cadorinator.Infrastructure.Entity;
 using Cadorinator.Infrastructure.Interface;
 using Cadorinator.Model;
+using Cadorinator.Service.Model;
 using Cadorinator.Service.Service.Interface;
 using Cadorinator.ServiceContract.Settings;
 using System;
@@ -15,71 +16,82 @@ namespace Cadorinator.Infrastructure
         private readonly ICadorinatorSettings _settings;
         private readonly IProviderService[] _providerServices;
         private readonly IDALService _dalService;
+        private long _lastSuccessfullProviderId;
+        private bool _startUpMode;
 
         public CadorinatorService(ICadorinatorSettings settings, IProviderService[] providerServices, IDALService dALService)
         {
             _settings = settings;
             _providerServices = providerServices;
-            _dalService = dALService;
+            _dalService = dALService; 
+            _startUpMode = true;
         }
 
-        public async Task<IList<Operation>> CollectSchedulesAsync()
+        public async Task<bool> CollectSchedulesAsync(OperationSchedule operationSchedule, long? providerId = null)
         {
-            foreach (var provider in await _dalService.ListProvidersAsync())
+            var providers = await _dalService.ListProvidersAsync();
+            var idIndex = providers.Select(x => x.ProviderId).OrderBy(x => x);
+
+            if (providerId is null) providerId = idIndex.First();
+            if (idIndex.Last() < providerId)
             {
-                await _providerServices.First(x => x.ProviderSourceId == provider.ProviderSource).RegisterSchedules(provider);
-                await Task.Delay(_settings.DefaultDelay);
+                providerId = idIndex.First();
+                _startUpMode = false;
             }
 
-            return new List<Operation>()
+            var provider = providers.FirstOrDefault(x => x.ProviderId == providerId);
+            if (provider is not null)
             {
-                new Operation()
-                {
-                    Function = () => this.CollectSchedulesAsync(),
-                    ActionType = ActionType.CollectSchedules,
-                    Identifier = "CS",
-                    ScheduledTime = DateTime.UtcNow.AddHours(_settings.PollerTimeSpan),
-                    RequireCoolDown = false
-                }
-            };
+                await _providerServices.First(x => x.ProviderSourceId == provider.ProviderSource).RegisterSchedules(provider);
+                _lastSuccessfullProviderId = providerId.Value;
+            }
+
+            return operationSchedule.AddOperation(new Operation()
+            {
+                Function = (x) => this.CollectSchedulesAsync(x, providerId++),
+                ActionType = ActionType.CollectSchedules,
+                Identifier = "CS",
+                ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode? 5 : _settings.PollerTimeSpan)
+            }, required: true);
         }
 
-        public async Task<IList<Operation>> CheckSchedulesAsync(TimeSpan timeSpan, List<Operation> operations)
+        public async Task<bool> CheckSchedulesAsync(TimeSpan timeSpan, OperationSchedule operationSchedule)
         {
-            operations.Add(new Operation()
+            operationSchedule.AddOperation(new Operation()
             {
                 ActionType = ActionType.CheckSchedules,
-                Function = () => CheckSchedulesAsync(timeSpan, operations),
+                Function = (x) => CheckSchedulesAsync(timeSpan, x),
                 Identifier = "CHS",
-                RequireCoolDown = false,
-                ScheduledTime = DateTime.UtcNow.AddHours(_settings.SchedulerTimeSpan)
-            });
+                ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode? 5 : _settings.SchedulerTimeSpan)
+            }, required: true);
 
             foreach (var schedule in await _dalService.ListProjectionsScheduleAsync(timeSpan))
             {
                 foreach (var timeOffsetToCollect in _settings.SamplesRange)
                 {
-                    var id = $"T:{schedule.ProjectionsScheduleId}O:-{timeOffsetToCollect}";
-                    if (!operations.Any(x => x.Identifier == id) && DateTime.UtcNow < schedule.ProjectionTimestamp.AddSeconds(-timeOffsetToCollect))
+                    var id = $"T:{schedule.ProjectionsScheduleId}O:{-timeOffsetToCollect}";
+                    var timeSchedule = schedule.ProjectionTimestamp.ToUniversalTime().AddSeconds(-timeOffsetToCollect);
+                    if (DateTime.UtcNow > timeSchedule) continue;
+
+                    if (!operationSchedule.Any(id))
                     {
-                        operations.Add(new Operation()
+                        operationSchedule.AddOperation(new Operation()
                         {
                             ActionType = ActionType.TakeSample,
-                            Function = () => this.TakeSample(schedule, timeOffsetToCollect),
-                            ScheduledTime = schedule.ProjectionTimestamp.AddSeconds(-timeOffsetToCollect),
-                            Identifier = id,
-                            RequireCoolDown = true
+                            Function = (x) => this.TakeSample(schedule, timeOffsetToCollect),
+                            ProspectedTime = timeSchedule,
+                            Identifier = id
                         });
                     }
                 }
             }
-            return operations;
+            return true;
         }
 
-        public async Task<IList<Operation>> TakeSample(ProjectionsSchedule schedule, int eta)
+        public async Task<bool> TakeSample(ProjectionsSchedule schedule, int eta)
         {
             await _providerServices.First(x => x.ProviderSourceId == schedule.Provider.ProviderSource).SampleData(schedule, eta);
-            return new List<Operation>();
+            return true;
         }
     }
 }

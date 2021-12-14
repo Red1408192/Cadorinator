@@ -74,7 +74,7 @@ namespace Cadorinator.Service.Service
                             FilmId = film.FilmId,
                             ProjectionTimestamp = utcDate,
                             ProviderId = source.ProviderId,
-                            SourceEndpoint = $"https://{source.ProviderDomain}seats/{ projectionId }?caller_id=0",
+                            SourceEndpoint = $"https://{source.ProviderDomain}/seats/{ projectionId }?caller_id=0",
                             ThreaterId = 1
                         };
 

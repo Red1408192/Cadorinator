@@ -2,6 +2,7 @@
 using Cadorinator.Infrastructure.Entity;
 using Cadorinator.Infrastructure.Interface;
 using Cadorinator.Model;
+using Cadorinator.Service.Model;
 using Cadorinator.Service.Service;
 using Cadorinator.Service.Service.Interface;
 using Cadorinator.ServiceContract.Settings;
@@ -19,22 +20,20 @@ namespace Cadorinator.Service
         private static IDALService _dalService;
         private static ICadorinatorService _service;
         private static IProviderService[] _providerServices;
-        private static List<Operation> Operations = new List<Operation>();
+        private static OperationSchedule Operations;
 
         static async Task Main(string[] args)
         {
             await SetupAsync();
+            if (!Operations.Any(ActionType.CollectSchedules)) await _service.CollectSchedulesAsync(Operations);
+            if (!Operations.Any(ActionType.CheckSchedules)) await _service.CheckSchedulesAsync(new TimeSpan(_settings.PollerTimeSpan, 0, 0), Operations);
             while (true)
             {
-                if (!Operations.Any(x => x.ActionType == ActionType.CollectSchedules)) Operations.AddRange(await _service.CollectSchedulesAsync());
-                if (!Operations.Any(x => x.ActionType == ActionType.CheckSchedules)) Operations.AddRange(await _service.CheckSchedulesAsync(new TimeSpan(_settings.PollerTimeSpan,0,0), Operations));
-
-                
-                foreach(var op in Operations.Where(o => o.ScheduledTime < DateTime.UtcNow).ToArray())
+                foreach(var op in Operations.GetOperations(DateTime.UtcNow))
                 {
-                    Operations.AddRange(await op.Function());
-                    if (op.RequireCoolDown) await Task.Delay(_settings.DefaultDelay);
+                    if(await op.Value.Function(Operations)) Operations.Pop(op.Key);
                 }
+                await Task.Delay(_settings.Reactivity);
             }
         }
 
@@ -43,6 +42,7 @@ namespace Cadorinator.Service
             _settings = await Settings.LoadAsync();
             _dbContextFactory = new DbContextFactory(_settings.FilePath, _settings.MainDbName);
             _dalService = new DalService(_dbContextFactory, _settings);
+            Operations = new OperationSchedule(_settings.MaxRequestOffset);
 
             _providerServices = new IProviderService[]
             {

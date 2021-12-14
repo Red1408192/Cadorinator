@@ -1,15 +1,15 @@
-﻿using System;
+﻿using Cadorinator.Service.Model;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Cadorinator.Model
 {
-    public struct Operation
+    public class Operation
     {
-        public Func<Task<IList<Operation>>> Function { get; set; }
-        public DateTime ScheduledTime { get; set; }
+        public Func<OperationSchedule, Task<bool>> Function { get; set; }
+        public DateTime ProspectedTime { get; set; }
         public ActionType ActionType { get; set; }
         public string Identifier { get; set; }
-        public bool RequireCoolDown { get; set; }
     }
 }

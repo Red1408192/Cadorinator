@@ -10,21 +10,21 @@ namespace Cadorinator.Infrastructure
     {
         public static string FormatEta(int seconds)
         {
-			if (seconds < 60)
+			if (Math.Abs(seconds) < 60)
 			{
-				return $"-{seconds}s";
+				return $"{-seconds}s";
 			}
-			if (seconds < 3600)
+			if (Math.Abs(seconds) < 3600)
 			{
-				return $"-{seconds / 60}m";
+				return $"{-seconds / 60}m";
 			}
-			if (seconds < 43200)
+			if (Math.Abs(seconds) < 43200)
 			{
-				return $"-{seconds / 3600}h";
+				return $"{-seconds / 3600}h";
 			}
 			else
 			{
-				return $"-{seconds / 43200}d";
+				return $"{-seconds / 43200}d";
 			}
 		}
     }
