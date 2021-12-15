@@ -23,7 +23,7 @@ namespace Cadorinator.CommandConsole
             Console.WriteLine("Command Console");
             Console.WriteLine("Type 'help' to list all command");
 
-            using(var context = new DbContextFactory(settings.FilePath, settings.MainDbName, _logger).Create())
+            using(var context = new DbContextFactory(settings, _logger).Create())
             {
                 while (true)
                 {
