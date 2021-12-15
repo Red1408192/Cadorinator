@@ -1,24 +1,29 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Cadorinator.ServiceContract.Settings;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace Cadorinator.Infrastructure
 {
     public class DbContextFactory : IDbContextFactory<MainContext>
     {
-        private readonly string connectionString;
-        private readonly string dbName;
+        private readonly ICadorinatorSettings _settings;
         private readonly ILogger _logger;
 
-        public DbContextFactory(string conn, string name, ILogger logger)
+        public DbContextFactory(ICadorinatorSettings settings, ILogger logger)
         {
-            connectionString = conn;
-            dbName = name;
+            _settings = settings;
             _logger = logger;
+            Setup();
         }
 
         public MainContext Create()
         {
-            return new MainContext(connectionString, dbName, _logger);
+            return new MainContext(_settings, _logger);
+        }
+
+        public void Setup()
+        {
+            new MainContext(_settings, _logger).Setup();
         }
     }
 

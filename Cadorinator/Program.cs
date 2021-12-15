@@ -52,7 +52,7 @@ namespace Cadorinator.Service
                 restrictedToMinimumLevel: (LogEventLevel)_settings.LoggingLevel)
                 .CreateLogger();
             _logger.Warning("Startup");
-            _dbContextFactory = new DbContextFactory(_settings.FilePath, _settings.MainDbName, _logger);
+            _dbContextFactory = new DbContextFactory(_settings, _logger);
             _dalService = new DalService(_dbContextFactory, _settings, _logger);
             Operations = new OperationSchedule(_settings.MaxRequestOffset, _logger);
 
@@ -62,7 +62,6 @@ namespace Cadorinator.Service
                 new EighteenTicketV2Service(_dalService, _settings, _logger)
             };
             _service = new CadorinatorService(_settings, _providerServices, _dalService, _logger);
-
             startUpLogger.Warning("setup completed");
         }
     }

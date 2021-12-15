@@ -1,8 +1,10 @@
 ﻿using Cadorinator.Infrastructure.Entity;
+using Cadorinator.ServiceContract.Settings;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
 
@@ -19,22 +21,17 @@ namespace Cadorinator.Infrastructure
         public virtual DbSet<City> Cities { get; set; }
         public virtual DbSet<Theater> Theaters { get; set; }
 
-        private readonly string _connectionString;
-        private readonly string _mainDbName;
+        private readonly ICadorinatorSettings _settings;
         private readonly ILogger _logger;
 
         public MainContext() { }
 
-        public MainContext(string conn, string mainDbName, ILogger logger)
+        public MainContext(ICadorinatorSettings settings, ILogger logger)
         {
             try
             {
+                _settings = settings;
                 _logger = logger;
-                _mainDbName = mainDbName;
-                _connectionString = conn;
-
-                Directory.CreateDirectory(conn);
-                this.Database.Migrate();
             }
             catch(Exception ex)
             {
@@ -42,9 +39,17 @@ namespace Cadorinator.Infrastructure
             }
         }
 
+        internal void Setup()
+        {
+            Directory.CreateDirectory(_settings.FilePath);
+            this.Database.Migrate();
+            this.Database.ExecuteSqlRaw("DROP VIEW IF EXISTS SampleView;\n");
+            this.Database.ExecuteSqlRaw(CreateDynamicView(_settings.SamplesRange));
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {            
-            optionsBuilder.UseSqlite("Data Source=" + _connectionString + _mainDbName + ";");
+            optionsBuilder.UseSqlite("Data Source=" + _settings.FilePath + _settings.MainDbName + ";");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -191,5 +196,47 @@ namespace Cadorinator.Infrastructure
         }
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+
+        private string CreateDynamicView(int[] sampleRanges)
+        {
+            var query = "";
+            query += "CREATE VIEW SampleView\n";
+            query += "(Film\n,Cinema\n,Theater\n,Date\n,Time\n";
+            query += $",'Total Seats'\n";
+            query += sampleRanges
+                        .OrderBy(x => x)
+                        .Aggregate("", (x, y) => x +
+                         $",'Bought({FormatHelper.FormatEta(y)})'\n" +
+                         $",'Locked({FormatHelper.FormatEta(y)})'\n" +
+                         $",'Quarantined({FormatHelper.FormatEta(y)})'\n") + ")\n";
+            query += "AS\n";
+            query += "SELECT\n";
+            query += "F.FilmName AS Film\n";
+            query += ",P.ProviderDomain AS Provider\n";
+            query += ",T.TheaterName AS Theater\n";
+            query += ",Date(PS.ProjectionTimestamp)   AS Date\n";
+            query += ",Time(PS.ProjectionTimestamp)   AS Time\n";
+            query += $",Sp{ Sql(sampleRanges.OrderBy(x => x).First())}.TotalSeats AS 'Total'\n";
+            query += sampleRanges
+                        .OrderBy(x => x)
+                        .Aggregate("", (x, y) => x +
+                         $",Sp{Sql(y)}.BoughtSeats AS 'Bought({FormatHelper.FormatEta(y)})'\n" +
+                         $",Sp{Sql(y)}.LockedSeats AS 'Locked({FormatHelper.FormatEta(y)})'\n" +
+                         $",Sp{Sql(y)}.QuarantinedSeats AS 'Quarantined({FormatHelper.FormatEta(y)})'\n");
+            query += "FROM ProjectionsSchedule PS\n";
+            query += sampleRanges
+                        .OrderBy(x => x)
+                        .Take(1)
+                        .Select(y => $"JOIN Sample SP{Sql(y)} ON PS.ProjectionsScheduleId = SP{Sql(y)}.ProjectionsScheduleId AND SP{Sql(y)}.Eta = '{FormatHelper.FormatEta(y)}'\n").First();
+            query += sampleRanges
+                        .OrderBy(x => x)
+                        .Skip(1)
+                        .Aggregate("", (x, y) => x + $"LEFT JOIN Sample SP{Sql(y)} ON PS.ProjectionsScheduleId = SP{Sql(y)}.ProjectionsScheduleId AND SP{Sql(y)}.Eta = '{FormatHelper.FormatEta(y)}'\n");
+            query += "JOIN Theater T ON T.TheaterId = PS.ThreaterId\n";
+            query += "JOIN Provider P ON P.ProviderId = PS.ProviderId\n";
+            query += "JOIN Film F ON F.FilmId = PS.FilmId\n";
+            return query;
+        }
+        private string Sql(int i) => i.ToString().Replace("-", "m");
     }
 }
