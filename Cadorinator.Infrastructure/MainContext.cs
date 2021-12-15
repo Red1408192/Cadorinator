@@ -215,8 +215,8 @@ namespace Cadorinator.Infrastructure
             query += ",P.ProviderDomain AS Provider\n";
             query += ",C.CityName AS City\n";
             query += ",T.TheaterName AS Theater\n";
-            query += ",Date(PS.ProjectionTimestamp)   AS Date\n";
-            query += ",Time(PS.ProjectionTimestamp)   AS Time\n";
+            query += ",Date(PS.ProjectionTimestamp, 'localtime')   AS Date\n";
+            query += ",Time(PS.ProjectionTimestamp, 'localtime')   AS Time\n";
             query += $",Sp{ Sql(sampleRanges.OrderBy(x => x).First())}.TotalSeats AS 'Total'\n";
             query += sampleRanges
                         .OrderBy(x => x)
