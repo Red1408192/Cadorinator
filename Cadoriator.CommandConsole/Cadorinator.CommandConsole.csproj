@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Cadorinator.Infrastructure\Cadorinator.Infrastructure.csproj" />
     <ProjectReference Include="..\Model\Cadorinator.ServiceContract.csproj" />
   </ItemGroup>

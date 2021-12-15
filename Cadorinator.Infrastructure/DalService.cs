@@ -11,9 +11,9 @@ namespace Cadorinator.Infrastructure
 {
     public interface IDALService
     {
-        Task AddSchedule(ProjectionsSchedule schedule);
+        Task<bool> AddSchedule(ProjectionsSchedule schedule);
         Task<IEnumerable<Provider>> ListProvidersAsync(long? providerSource = null);
-        Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA);
+        Task<bool> LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA);
         Task<Film> UpselectFilm(string filmName, DateTimeOffset projectionScehdule);
         Task<IEnumerable<ProjectionsSchedule>> ListProjectionsScheduleAsync(TimeSpan timeSpan);
     }
@@ -25,8 +25,8 @@ namespace Cadorinator.Infrastructure
 
         public DalService(IDbContextFactory<MainContext> dbContext, ICadorinatorSettings settings, ILogger logger)
         {
-            this._logger = logger;
-            this.dbContextFactory = dbContext;
+            _logger = logger;
+            dbContextFactory = dbContext;
         }
 
         public async Task<IEnumerable<Provider>> ListProvidersAsync(long? providerSource = null)
@@ -47,21 +47,23 @@ namespace Cadorinator.Infrastructure
             }
         }
 
-        public async Task AddSchedule(ProjectionsSchedule schedule)
+        public async Task<bool> AddSchedule(ProjectionsSchedule schedule)
         {
             try
             {
                 using (var db = dbContextFactory.Create())
                 {
-                    if (await db.ProjectionsSchedules.AnyAsync(x => x.FilmId == schedule.FilmId && x.ProjectionTimestamp == schedule.ProjectionTimestamp && x.ProviderId == x.ProviderId)) return;
+                    if (await db.ProjectionsSchedules.AnyAsync(x => x.FilmId == schedule.FilmId && x.ProjectionTimestamp == schedule.ProjectionTimestamp && x.ProviderId == x.ProviderId)) return false;
                     await db.ProjectionsSchedules
                         .AddAsync(schedule);
-                    await db.SaveChangesAsync();
+                    var res = await db.SaveChangesAsync();
+                    return res > 0;
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Add schedule");
+                return false;
             }
         }
 
@@ -83,6 +85,7 @@ namespace Cadorinator.Infrastructure
                         await db.Films
                             .AddAsync(film);
                         await db.SaveChangesAsync();
+                        _logger.Information($"{filmName} added as a film");
                         return film;
                     }
                     if (film.FirstProjectionDate < projectionScehdule)
@@ -101,7 +104,7 @@ namespace Cadorinator.Infrastructure
             }
         }
 
-        public async Task LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA)
+        public async Task<bool> LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA)
         {
             try
             {
@@ -118,12 +121,15 @@ namespace Cadorinator.Infrastructure
                         QuarantinedSeats = quarantinedSeats,
                         TotalSeats = totalSeats
                     });
-                    await db.SaveChangesAsync();
+                    var res = await db.SaveChangesAsync();
+                    _logger.Information($"sample collected");
+                    return res > 0;
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Load Sample");
+                return false;
             }
         }
 

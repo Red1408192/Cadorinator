@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Cadorinator.Service.Service
 {
@@ -53,7 +54,7 @@ namespace Cadorinator.Service.Service
                 int count = 0;
                 foreach (var node in nodes)
                 {
-                    var filmTitle = node.SelectSingleNode(".//*[contains(@class,'movie__title')]")?.InnerText.Replace("\n", "");
+                    var filmTitle = HttpUtility.HtmlDecode(node.SelectSingleNode(".//*[contains(@class,'movie__title')]")?.InnerText.Replace("\n", ""));
                     if (filmTitle == null) continue;
                     var timeSelector = node.SelectSingleNode(".//*[contains(@class,'time-select')]");
                     if (timeSelector == null) continue;
@@ -91,8 +92,8 @@ namespace Cadorinator.Service.Service
                                 SourceEndpoint = $"https://{source.ProviderDomain}/seats/{ projectionId }?caller_id=0",
                                 ThreaterId = 1
                             };
-                            count++;
-                            await _cadorinatorService.AddSchedule(schedule);
+
+                            if(await _cadorinatorService.AddSchedule(schedule)) count++;
                         }
                     }
                 }

@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Cadorinator.Service.Service
 {
@@ -42,7 +43,7 @@ namespace Cadorinator.Service.Service
                     await Task.Delay(_settings.DefaultDelay * tries);
                     tries++;
                     HtmlWeb web = new HtmlWeb();
-                    var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/");
+                    var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/", encoding: Encoding.UTF8);
                     if (htmlDoc == null) return;
                     if (htmlDoc.ParsedText.Length < 80 && tries < 10)
                     {
@@ -56,7 +57,7 @@ namespace Cadorinator.Service.Service
                 int count = 0;
                 foreach (var node in nodes)
                 {
-                    var filmTitle = node.SelectSingleNode(".//h4")?.InnerText;
+                    var filmTitle = HttpUtility.HtmlDecode(node.SelectSingleNode(".//h4")?.InnerText);
                     if (filmTitle == null) continue;
                     var innerNodes = node.SelectNodes(".//*[contains(@class,'m18-home-projection')]");
                     if (innerNodes == null) continue;
@@ -79,8 +80,7 @@ namespace Cadorinator.Service.Service
                                 SourceEndpoint = innerHtml,
                                 ThreaterId = 1
                             };
-                            count++;
-                            await _cadorinatorService.AddSchedule(schedule);
+                            if (await _cadorinatorService.AddSchedule(schedule)) count++;
                         }
                     }
                 }
