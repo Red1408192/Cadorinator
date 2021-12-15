@@ -17,6 +17,7 @@ namespace Cadorinator.Infrastructure
         public virtual DbSet<ProviderSource> ProviderSources { get; set; }
         public virtual DbSet<Sample> Samples { get; set; }
         public virtual DbSet<City> Cities { get; set; }
+        public virtual DbSet<Theater> Theaters { get; set; }
 
         private readonly string _connectionString;
         private readonly string _mainDbName;
@@ -158,6 +159,20 @@ namespace Cadorinator.Infrastructure
                 entity.HasOne(d => d.ProjectionsSchedule)
                     .WithMany(p => p.Samples)
                     .HasForeignKey(d => d.ProjectionsScheduleId);
+            });
+
+            modelBuilder.Entity<Theater>(entity =>
+            {
+                entity.ToTable("Theater");
+
+                entity.HasIndex(e => e.TheaterId, "IX_Theater_TheaterId")
+                    .IsUnique();
+
+                entity.Property(e => e.TheaterName).HasColumnType("VARCHAR(10)");
+                entity.HasOne(e => e.ProviderNavigation)
+                    .WithMany(e => e.Theaters)
+                    .HasForeignKey(e => e.ProviderId);
+
             });
 
             modelBuilder.Entity<City>(entity =>

@@ -83,6 +83,9 @@ namespace Cadorinator.Service.Service
                             var utcDate = TimeZoneInfo.ConvertTime(date, TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time"), TimeZoneInfo.FindSystemTimeZoneById("UTC"));
 
                             var film = await _cadorinatorService.UpselectFilm(filmTitle, date.ToUniversalTime());
+
+                            var theaterName = innerNode.Attributes["data-tname"]?.Value;
+                            var theater = await _cadorinatorService.UpselectTheater(theaterName, source.ProviderId);
                             var projectionId = innerNode.Attributes["data-id"]?.Value;
                             var schedule = new ProjectionsSchedule()
                             {
@@ -90,7 +93,7 @@ namespace Cadorinator.Service.Service
                                 ProjectionTimestamp = utcDate,
                                 ProviderId = source.ProviderId,
                                 SourceEndpoint = $"https://{source.ProviderDomain}/seats/{ projectionId }?caller_id=0",
-                                ThreaterId = 1
+                                ThreaterId = theater.TheaterId
                             };
 
                             if(await _cadorinatorService.AddSchedule(schedule)) count++;

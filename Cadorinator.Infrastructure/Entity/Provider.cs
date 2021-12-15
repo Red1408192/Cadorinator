@@ -10,6 +10,7 @@ namespace Cadorinator.Infrastructure.Entity
         public Provider()
         {
             ProjectionsSchedules = new HashSet<ProjectionsSchedule>();
+            Theaters = new HashSet<Theater>();
         }
 
         public long ProviderId { get; set; }
@@ -20,5 +21,6 @@ namespace Cadorinator.Infrastructure.Entity
         public virtual ProviderSource ProviderSourceNavigation { get; set; }
         public virtual City CityNavigation { get; set; }
         public virtual ICollection<ProjectionsSchedule> ProjectionsSchedules { get; set; }
+        public virtual ICollection<Theater> Theaters { get; set; }
     }
 }

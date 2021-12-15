@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -65,12 +66,14 @@ namespace Cadorinator.Service.Service
                     {
                         var innerHtml = panel.Attributes["href"]?.Value;
                         if (innerHtml == null) continue;
-
+                        var theaterName = Regex.Match(panel.InnerText.Replace("\n", ""), @"(?<=\|\s).*").Value;
 
                         if (long.TryParse(panel.Attributes["data-time"]?.Value, out var unixTime))
                         {
                             var scheduletime = DateTimeOffset.FromUnixTimeMilliseconds(unixTime).ToUniversalTime();
                             var film = await _cadorinatorService.UpselectFilm(filmTitle, scheduletime);
+
+                            var theater = await _cadorinatorService.UpselectTheater(theaterName, source.ProviderId);
 
                             var schedule = new ProjectionsSchedule()
                             {
@@ -78,7 +81,7 @@ namespace Cadorinator.Service.Service
                                 ProjectionTimestamp = scheduletime.UtcDateTime,
                                 ProviderId = source.ProviderId,
                                 SourceEndpoint = innerHtml,
-                                ThreaterId = 1
+                                ThreaterId = theater.TheaterId
                             };
                             if (await _cadorinatorService.AddSchedule(schedule)) count++;
                         }

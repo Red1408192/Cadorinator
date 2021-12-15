@@ -16,6 +16,7 @@ namespace Cadorinator.Infrastructure
         Task<bool> LoadSample(long projectionsScheduleId, long boughtSeats, long lockedSeats, long reservedSeats, long quarantinedSeats, long totalSeats, int secondsETA);
         Task<Film> UpselectFilm(string filmName, DateTimeOffset projectionScehdule);
         Task<IEnumerable<ProjectionsSchedule>> ListProjectionsScheduleAsync(TimeSpan timeSpan);
+        Task<Theater> UpselectTheater(string theaterName, long ProviderId);
     }
 
     public class DalService : IDALService
@@ -53,7 +54,10 @@ namespace Cadorinator.Infrastructure
             {
                 using (var db = dbContextFactory.Create())
                 {
-                    if (await db.ProjectionsSchedules.AnyAsync(x => x.FilmId == schedule.FilmId && x.ProjectionTimestamp == schedule.ProjectionTimestamp && x.ProviderId == x.ProviderId)) return false;
+                    if (await db.ProjectionsSchedules.AnyAsync(x => x.FilmId == schedule.FilmId 
+                                                                && x.ProjectionTimestamp == schedule.ProjectionTimestamp
+                                                                && x.ProviderId == x.ProviderId
+                                                                && x.ThreaterId == schedule.ThreaterId)) return false;
                     await db.ProjectionsSchedules
                         .AddAsync(schedule);
                     var res = await db.SaveChangesAsync();
@@ -88,7 +92,7 @@ namespace Cadorinator.Infrastructure
                         _logger.Information($"{filmName} added as a film");
                         return film;
                     }
-                    if (film.FirstProjectionDate < projectionScehdule)
+                    if (film.FirstProjectionDate > projectionScehdule)
                     {
                         db.Update(film);
                         film.FirstProjectionDate = projectionScehdule.UtcDateTime;
@@ -100,6 +104,37 @@ namespace Cadorinator.Infrastructure
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Upselect Film");
+                return default;
+            }
+        }
+
+        public async Task<Theater> UpselectTheater(string theaterName, long ProviderId)
+        {
+            try
+            {
+                using (var db = dbContextFactory.Create())
+                {
+                    var theater = await db.Theaters
+                        .FirstOrDefaultAsync(x => x.TheaterName == theaterName);
+                    if (theater == null)
+                    {
+                        theater = new Theater()
+                        {
+                            TheaterName = theaterName,
+                            ProviderId = ProviderId
+                        };
+                        await db.Theaters
+                            .AddAsync(theater);
+                        await db.SaveChangesAsync();
+                        _logger.Information($"{theaterName} added as theater");
+                        return theater;
+                    }
+                    return theater;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Upselect Theater");
                 return default;
             }
         }
