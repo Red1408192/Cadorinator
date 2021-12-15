@@ -201,7 +201,7 @@ namespace Cadorinator.Infrastructure
         {
             var query = "";
             query += "CREATE VIEW SampleView\n";
-            query += "(Film\n,Cinema\n,Theater\n,Date\n,Time\n";
+            query += "(Film\n,Cinema\n,City\n,Theater\n,Date\n,Time\n";
             query += $",'Total Seats'\n";
             query += sampleRanges
                         .OrderBy(x => x)
@@ -213,6 +213,7 @@ namespace Cadorinator.Infrastructure
             query += "SELECT\n";
             query += "F.FilmName AS Film\n";
             query += ",P.ProviderDomain AS Provider\n";
+            query += ",C.CityName AS City\n";
             query += ",T.TheaterName AS Theater\n";
             query += ",Date(PS.ProjectionTimestamp)   AS Date\n";
             query += ",Time(PS.ProjectionTimestamp)   AS Time\n";
@@ -233,6 +234,7 @@ namespace Cadorinator.Infrastructure
                         .Skip(1)
                         .Aggregate("", (x, y) => x + $"LEFT JOIN Sample SP{Sql(y)} ON PS.ProjectionsScheduleId = SP{Sql(y)}.ProjectionsScheduleId AND SP{Sql(y)}.Eta = '{FormatHelper.FormatEta(y)}'\n");
             query += "JOIN Theater T ON T.TheaterId = PS.ThreaterId\n";
+            query += "JOIN City C ON C.CityId = P.CityId\n";
             query += "JOIN Provider P ON P.ProviderId = PS.ProviderId\n";
             query += "JOIN Film F ON F.FilmId = PS.FilmId\n";
             return query;
