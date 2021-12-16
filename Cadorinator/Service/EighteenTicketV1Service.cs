@@ -80,8 +80,7 @@ namespace Cadorinator.Service.Service
                     {
                         if (DateTime.TryParse(innerNode.Attributes["data-date"]?.Value, out var date))
                         {
-                            var utcDate = TimeZoneInfo.ConvertTime(date, TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time"), TimeZoneInfo.FindSystemTimeZoneById("UTC"));
-
+                            var utcDate = TimeZoneInfo.ConvertTimeToUtc(date, TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time"));
                             var film = await _cadorinatorService.UpselectFilm(filmTitle, date.ToUniversalTime());
 
                             var theaterName = innerNode.Attributes["data-tname"]?.Value;
