@@ -20,6 +20,7 @@ namespace Cadorinator.Infrastructure
         public virtual DbSet<Sample> Samples { get; set; }
         public virtual DbSet<City> Cities { get; set; }
         public virtual DbSet<Theater> Theaters { get; set; }
+        public virtual DbSet<LatestSample> LatestSamples { get; set; }
 
         private readonly ICadorinatorSettings _settings;
         private readonly ILogger _logger;
@@ -49,7 +50,8 @@ namespace Cadorinator.Infrastructure
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {            
-            optionsBuilder.UseSqlite("Data Source=" + _settings.FilePath + _settings.MainDbName + ";");
+            //optionsBuilder.UseSqlite("Data Source=" + _settings.FilePath + _settings.MainDbName + ";");
+            optionsBuilder.UseSqlite("Data Source=" + $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\Cadorinator\\" + "Cadorinator.db" + ";");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -192,11 +194,28 @@ namespace Cadorinator.Infrastructure
                 .HasColumnType("VARCHAR(30)");
             });
 
+            modelBuilder.Entity<LatestSample>(entity =>
+            {
+                entity.ToView("LatestSampleView");
+                entity.HasIndex(e => e.LatestSampleId, "IX_latestSample_LatestSampleId");
+                entity.Property(e => e.FilmName);
+                entity.Property(e => e.ProviderDomain);
+                entity.Property(e => e.CityName);
+                entity.Property(e => e.TheaterName);
+                entity.Property(e => e.Date);
+                entity.Property(e => e.Time);
+                entity.Property(e => e.Total);
+                entity.Property(e => e.Bought);
+                entity.Property(e => e.Locked);
+                entity.Property(e => e.Quarantined);
+                entity.Property(e => e.Eta);
+            });
+
             OnModelCreatingPartial(modelBuilder);
         }
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
-
+        
         private string CreateDynamicView(int[] sampleRanges)
         {
             var query = "";
