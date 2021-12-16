@@ -77,6 +77,9 @@ namespace Cadorinator.Infrastructure
 
                 entity.Property(e => e.TimeStamp)
                     .IsRequired()
+                    .HasConversion<DateTime>(
+                    v => v.ToUniversalTime(),
+                    v => TimeZoneInfo.ConvertTimeToUtc(v, TimeZoneInfo.FindSystemTimeZoneById("UTC")))
                     .HasColumnType("DATETIME");
 
                 entity.Property(e => e.Parameters)
@@ -93,6 +96,9 @@ namespace Cadorinator.Infrastructure
 
                 entity.Property(e => e.ProjectionTimestamp)
                     .IsRequired()
+                    .HasConversion<DateTime>(
+                    v => v.ToUniversalTime(),
+                    v => TimeZoneInfo.ConvertTimeToUtc(v, TimeZoneInfo.FindSystemTimeZoneById("UTC")))
                     .HasColumnType("DATETIME");
 
                 entity.Property(e => e.SourceEndpoint)
@@ -161,6 +167,9 @@ namespace Cadorinator.Infrastructure
 
                 entity.Property(e => e.SampleTimestamp)
                     .IsRequired()
+                    .HasConversion<DateTime>(
+                    v => v.ToUniversalTime(),
+                    v => TimeZoneInfo.ConvertTimeToUtc(v, TimeZoneInfo.FindSystemTimeZoneById("UTC")))
                     .HasColumnType("DATETIME");
 
                 entity.Property(e => e.TotalSeats).HasColumnType("SMALLINT");

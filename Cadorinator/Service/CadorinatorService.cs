@@ -92,7 +92,7 @@ namespace Cadorinator.Infrastructure
                     foreach (var timeOffsetToCollect in _settings.SamplesRange)
                     {
                         var id = $"T:{schedule.ProjectionsScheduleId}O:{-timeOffsetToCollect}";
-                        var timeSchedule = schedule.ProjectionTimestamp.AddSeconds(-timeOffsetToCollect);
+                        var timeSchedule = schedule.ProjectionTimestamp.ToUniversalTime().AddSeconds(-timeOffsetToCollect);
                         if (DateTime.UtcNow > timeSchedule) continue;
 
                         if (!operationSchedule.Any(id))
