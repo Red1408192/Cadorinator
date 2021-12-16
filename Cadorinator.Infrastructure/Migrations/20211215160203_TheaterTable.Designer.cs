@@ -128,6 +128,10 @@ namespace Cadorinator.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("VARCHAR(60)");
 
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasColumnType("VARCHAR(20)");
+
                     b.Property<long>("ProviderSource")
                         .HasColumnType("INTEGER");
 

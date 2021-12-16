@@ -9,7 +9,7 @@ CREATE VIEW LatestSampleView AS
 WITH partition as (
 SELECT
      F.FilmName AS Film
-    , P.ProviderDomain AS Provider
+    , P.ProviderName AS Provider
     , C.CityName AS City
     , T.TheaterName AS Theater
     , Date(PS.ProjectionTimestamp, 'localtime')   AS Date

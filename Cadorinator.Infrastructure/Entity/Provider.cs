@@ -15,6 +15,7 @@ namespace Cadorinator.Infrastructure.Entity
 
         public long ProviderId { get; set; }
         public string ProviderDomain { get; set; }
+        public string ProviderName { get; set; }
         public long ProviderSource { get; set; }
         public long CityId { get; set; }
 

@@ -119,6 +119,10 @@ namespace Cadorinator.Infrastructure
                     .IsRequired()
                     .HasColumnType("VARCHAR(60)");
 
+                entity.Property(e => e.ProviderName)
+                    .IsRequired()
+                    .HasColumnType("VARCHAR(20)");
+
                 entity.HasOne(d => d.ProviderSourceNavigation)
                     .WithMany(p => p.Providers)
                     .HasForeignKey(d => d.ProviderSource);
@@ -212,7 +216,7 @@ namespace Cadorinator.Infrastructure
             query += "AS\n";
             query += "SELECT\n";
             query += "F.FilmName AS Film\n";
-            query += ",P.ProviderDomain AS Provider\n";
+            query += ",P.ProviderName AS Provider\n";
             query += ",C.CityName AS City\n";
             query += ",T.TheaterName AS Theater\n";
             query += ",Date(PS.ProjectionTimestamp, 'localtime')   AS Date\n";

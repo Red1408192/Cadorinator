@@ -34,6 +34,7 @@ namespace Cadorinator.Infrastructure.Migrations
                     ProviderId = table.Column<long>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     ProviderDomain = table.Column<string>(type: "VARCHAR(60)", nullable: false),
+                    ProviderName = table.Column<string>(type: "VARCHAR(20)", nullable: false),
                     ProviderSource = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
