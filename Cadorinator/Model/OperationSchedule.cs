@@ -24,7 +24,7 @@ namespace Cadorinator.Service.Model
             {
                 if (delaySeconds < _maxOffset && delaySeconds > -_maxOffset || required)
                 {
-                    var targetTime = operation.ProspectedTime.ToUniversalTime().AddSeconds(delaySeconds).ToBinary();
+                    var targetTime = operation.ProspectedTime.AddSeconds(delaySeconds).ToBinary();
                     if (this.Schedule.ContainsKey(targetTime))
                     {
                         var newDelay = delaySeconds >= 0 ? (delaySeconds * -1) - granularity : delaySeconds * -1;
