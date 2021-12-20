@@ -30,7 +30,7 @@ namespace Cadorinator.Service.Service
             _logger = logger;
         }
 
-        public async Task RegisterSchedules(Provider source)
+        public async Task<bool> RegisterSchedules(Provider source)
         {
             try
             {
@@ -42,7 +42,7 @@ namespace Cadorinator.Service.Service
                     outertries++;
                     HtmlWeb web = new HtmlWeb();
                     var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/");
-                    if (htmlDoc == null) return;
+                    if (htmlDoc == null) return false;
                     if (htmlDoc.ParsedText.Length < 80 && outertries < 10)
                     {
                         _logger.Debug($"Blocked on {source.ProviderDomain}, retry in {_settings.DefaultDelay * outertries}ms");
@@ -50,7 +50,7 @@ namespace Cadorinator.Service.Service
                     }
 
                 var nodes = htmlDoc.DocumentNode.SelectNodes("//*[contains(@class,'movie movie--preview release border border-light')]");
-                if (nodes == null) return;
+                if (nodes == null) return true;
                 int count = 0;
                 foreach (var node in nodes)
                 {
@@ -100,14 +100,16 @@ namespace Cadorinator.Service.Service
                     }
                 }
                 _logger.Information($"Registered {count} schedules in {source.ProviderDomain}");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"{DateTime.Now} - [EX] - Exception during RegisterSchedules V1");
+                return false;
             }
         }
 
-        public async Task SampleData(ProjectionsSchedule schedule, int secondsETA)
+        public async Task<bool> SampleData(ProjectionsSchedule schedule, int secondsETA)
         {
             try
             {
@@ -134,15 +136,18 @@ namespace Cadorinator.Service.Service
                         }
 
                     var json = await response?.Content?.ReadAsStringAsync();
+                    if (json == null) return true;
                     var result = JsonConvert.DeserializeObject<TheaterSample>(json);
-                    if (result == null) return;
+                    if (result == null) return true;
 
                     await _cadorinatorService.LoadSample(schedule.ProjectionsScheduleId, result.Bought.Count, result.Locked.Count, result.Reserved.Count, result.Quarantined.Count, result.Total, secondsETA);
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Exception during Sample data V1");
+                return false;
             }
         }
     }

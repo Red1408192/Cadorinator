@@ -19,12 +19,14 @@ namespace Cadorinator.ServiceContract.Settings
         bool AutoReport { get; set; }
         (byte, byte) AutoReportSchedule { get; set; }
         int LoggingLevel { get; set; }
+        int MaxOperationTries { get; }
     }
 
     public class CadorinatorSettings : ICadorinatorSettings
     {
         public int DefaultDelay { get; set; } = 600;
         public int Reactivity { get; set; } = 200;
+        public int MaxOperationTries { get; set; } = 8;
         public int PollerTimeSpan { get; set; } = 20;
         public int LoggingLevel { get; set; } = 3;
         public int SchedulerTimeSpan { get; set; } = 60;

@@ -36,7 +36,15 @@ namespace Cadorinator.Service
             {
                 foreach(var op in Operations.GetOperations(DateTime.UtcNow))
                 {
-                    if(await op.Value.Function(Operations)) Operations.Pop(op.Key);
+                    if(!await op.Value.Function(Operations) && op.Value.Tries < _settings.MaxOperationTries)
+                    {
+                        _logger.Error($"Operation Failed, Id:\"{op.Value.Identifier}\", tried:{op.Value.Tries} times");
+                        op.Value.ProspectedTime = DateTime.UtcNow.AddSeconds(4);
+                        op.Value.Tries += 1;
+                        Operations.AddOperation(op.Value);
+                    }
+                    else if(op.Value.Tries >= _settings.MaxOperationTries) _logger.Error($"Operation Aborted, Id:\"{op.Value.Identifier}\", will not be rescheduled");
+                    Operations.Pop(op.Key);
                 }
                 await Task.Delay(_settings.Reactivity);
             }

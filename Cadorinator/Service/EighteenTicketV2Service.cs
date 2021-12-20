@@ -34,7 +34,7 @@ namespace Cadorinator.Service.Service
             _logger = logger;
         }
 
-        public async Task RegisterSchedules(Provider source)
+        public async Task<bool> RegisterSchedules(Provider source)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace Cadorinator.Service.Service
                     tries++;
                     HtmlWeb web = new HtmlWeb();
                     var htmlDoc = await web.LoadFromWebAsync($"https://{source.ProviderDomain}/", encoding: Encoding.UTF8);
-                    if (htmlDoc == null) return;
+                    if (htmlDoc == null) return false;
                     if (htmlDoc.ParsedText.Length < 80 && tries < 10)
                     {
                         _logger.Debug($"Blocked on {source.ProviderDomain}, retry in {_settings.DefaultDelay * tries}ms");
@@ -54,7 +54,7 @@ namespace Cadorinator.Service.Service
 
 
                 var nodes = htmlDoc.DocumentNode.SelectNodes("//*[contains(@class,'m18-film-projection-block container col-md-12')]");
-                if (nodes == null) return;
+                if (nodes == null) return true;
                 int count = 0;
                 foreach (var node in nodes)
                 {
@@ -88,14 +88,16 @@ namespace Cadorinator.Service.Service
                     }
                 }
                 _logger.Information($"Registered {count} schedules in {source.ProviderDomain}");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, $"Exception during RegisterSchedules V2");
+                return false;
             }
         }
 
-        public async Task SampleData(ProjectionsSchedule schedule, int secondsETA)
+        public async Task<bool> SampleData(ProjectionsSchedule schedule, int secondsETA)
         {
             try
             {
@@ -111,10 +113,10 @@ namespace Cadorinator.Service.Service
                     }
 
                 var nodes = filmPage.DocumentNode.SelectNodes("//*[contains(@class,'label label-success film-projection m18-label-pj smooth-scroller')]");
-                if (nodes == null) return;
+                if (nodes == null) return true;
 
                 var node = nodes.FirstOrDefault(x => DatetimeHelper.ParseScheduleDate(x.Attributes["data-date"]?.Value).UtcDateTime == schedule.ProjectionTimestamp);
-                if (node == null) return;
+                if (node == null) return true;
 
                 using (var client = new HttpClient())
                 {
@@ -145,14 +147,16 @@ namespace Cadorinator.Service.Service
 
                     var json = await response?.Content?.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<TheaterSample>(json);
-                    if (result == null) return;
+                    if (result == null) return true;
 
                     await _cadorinatorService.LoadSample(schedule.ProjectionsScheduleId, result.Bought.Count, result.Locked.Count, result.Reserved.Count, result.Quarantined.Count, result.Total, secondsETA);
+                    return true;
                 }
             }
             catch(Exception ex)
             {
                 _logger.Error(ex, $"Exception during Sample Collecting V2");
+                return false;
             }
         }
     }

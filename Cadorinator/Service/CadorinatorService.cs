@@ -47,9 +47,11 @@ namespace Cadorinator.Infrastructure
                 }
 
                 var provider = providers.FirstOrDefault(x => x.ProviderId == providerId);
+                bool res = false;
                 if (provider is not null)
                 {
-                    await _providerServices.First(x => x.ProviderSourceId == provider.ProviderSource).RegisterSchedules(provider);
+                    res = await _providerServices.First(x => x.ProviderSourceId == provider.ProviderSource).RegisterSchedules(provider);
+                    if (!res) return false;
                     _lastSuccessfullProviderId = providerId.Value;
                 }
                 _logger.Information($"Done, next collection at {DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.PollerTimeSpan)}");
@@ -120,8 +122,7 @@ namespace Cadorinator.Infrastructure
 
         public async Task<bool> TakeSample(ProjectionsSchedule schedule, int eta)
         {
-            await _providerServices.First(x => x.ProviderSourceId == schedule.Provider.ProviderSource).SampleData(schedule, eta);
-            return true;
+            return await _providerServices.First(x => x.ProviderSourceId == schedule.Provider.ProviderSource).SampleData(schedule, eta);
         }
     }
 }

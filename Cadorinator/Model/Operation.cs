@@ -11,5 +11,6 @@ namespace Cadorinator.Model
         public DateTime ProspectedTime { get; set; }
         public ActionType ActionType { get; set; }
         public string Identifier { get; set; }
+        public int Tries { get; set; } = 0;
     }
 }
