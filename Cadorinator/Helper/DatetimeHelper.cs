@@ -14,36 +14,43 @@ namespace Cadorinator.Service.Helper
         /// </summary>
         public static DateTimeOffset ParseScheduleDate(string input)
         {
-            var currentDay = DateTime.Now.Day;
-            var currentMonth = DateTime.Now.Month;
-            var currentYear = DateTime.Now.Year;
-
-            if(!int.TryParse(Regex.Match(input, "[0-9]{2}(?=,)")?.Value, out var inputDay)) throw new InvalidOperationException();
-            if(!int.TryParse(Regex.Match(input, "[0-9]{2}(?=:)")?.Value, out var inputHour)) throw new InvalidOperationException();
-            if(!int.TryParse(Regex.Match(input, "[0-9]{2}(?!:)(?!,)")?.Value, out var inputMinute)) throw new InvalidOperationException();
-
-            int inputMonth, inputYear;
-            if(currentDay > inputDay)
+            try
             {
-                if(currentMonth == 12)
+                var currentDay = DateTime.Now.Day;
+                var currentMonth = DateTime.Now.Month;
+                var currentYear = DateTime.Now.Year;
+
+                if (!int.TryParse(Regex.Match(input, "[0-9]{2}(?=,)")?.Value, out var inputDay)) throw new InvalidOperationException();
+                if (!int.TryParse(Regex.Match(input, "[0-9]{2}(?=:)")?.Value, out var inputHour)) throw new InvalidOperationException();
+                if (!int.TryParse(Regex.Match(input, "[0-9]{2}(?!:)(?!,)")?.Value, out var inputMinute)) throw new InvalidOperationException();
+
+                int inputMonth, inputYear;
+                if (currentDay > inputDay)
                 {
-                    inputMonth = 1;
-                    inputYear = currentYear+1;
+                    if (currentMonth == 12)
+                    {
+                        inputMonth = 1;
+                        inputYear = currentYear + 1;
+                    }
+                    else
+                    {
+                        inputYear = currentYear;
+                        inputMonth = currentMonth + 1;
+                    }
                 }
                 else
                 {
+                    inputMonth = currentMonth;
                     inputYear = currentYear;
-                    inputMonth = currentMonth+1;
                 }
-            }
-            else
-            {
-                inputMonth = currentMonth;
-                inputYear = currentYear;
-            }
 
-            var result = new DateTime(inputYear, inputMonth, inputDay, inputHour, inputMinute, 0);
-            return new DateTimeOffset(result).ToUniversalTime();
+                var result = new DateTime(inputYear, inputMonth, inputDay, inputHour, inputMinute, 0);
+                return new DateTimeOffset(result).ToUniversalTime();
+            }
+            catch(Exception ex)
+            {
+                return DateTime.UtcNow;
+            }
         }
     }
 }
