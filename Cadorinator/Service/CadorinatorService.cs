@@ -34,7 +34,6 @@ namespace Cadorinator.Infrastructure
         {
             try
             {
-                providerId = 27;
                 _logger.Information(_startUpMode ? "Collecting Schedule in startup mode" : "Collecting Schedule");
                 var providers = await _dalService.ListProvidersAsync();
                 var idIndex = providers.Select(x => x.ProviderId).OrderBy(x => x);
