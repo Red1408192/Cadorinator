@@ -17,6 +17,10 @@ namespace Cadorinator.Infrastructure
         Task<Film> UpselectFilm(string filmName, DateTimeOffset projectionScehdule);
         Task<IEnumerable<ProjectionsSchedule>> ListProjectionsScheduleAsync(TimeSpan timeSpan);
         Task<Theater> UpselectTheater(string theaterName, long ProviderId);
+        Task<IEnumerable<Provider>> ListProvidersFullAsync();
+        Task<Provider> UpselectProvider(string domain, string name, string source, string city);
+        Task<ProviderSource> UpselectProviderSource(string name);
+        Task<City> UpselectCity(string name);
     }
 
     public class DalService : IDALService
@@ -29,7 +33,6 @@ namespace Cadorinator.Infrastructure
             _logger = logger;
             dbContextFactory = dbContext;
         }
-
         public async Task<IEnumerable<Provider>> ListProvidersAsync(long? providerSource = null)
         {
             try
@@ -38,6 +41,25 @@ namespace Cadorinator.Infrastructure
                 {
                     return await db.Providers
                         .Where(x => x.ProviderSource == (providerSource ?? x.ProviderSource))
+                        .ToListAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Exception during ListProvider");
+                return default;
+            }
+        }
+
+        public async Task<IEnumerable<Provider>> ListProvidersFullAsync()
+        {
+            try
+            {
+                using (var db = dbContextFactory.Create())
+                {
+                    return await db.Providers
+                        .Include(x => x.ProviderSourceNavigation)
+                        .Include(x => x.CityNavigation)
                         .ToListAsync();
                 }
             }
@@ -186,6 +208,87 @@ namespace Cadorinator.Infrastructure
             catch (Exception ex)
             {
                 _logger.Error(ex, $"List Projections Schedule");
+                return default;
+            }
+        }
+
+        public async Task<Provider> UpselectProvider(string domain, string name, string source, string city)
+        {
+            try
+            {
+                using (var db = dbContextFactory.Create())
+                {
+                    var provider = await db.Providers.SingleOrDefaultAsync(x => x.ProviderDomain == domain);
+                    if(provider == null)
+                    {
+                        provider = new Provider()
+                        {
+                            ProviderDomain = domain,
+                            ProviderName = name,
+                            ProviderSource = (await UpselectProviderSource(source)).ProviderSourceId,
+                            CityId = (await UpselectCity(city)).CityId
+                        };
+                        await db.Providers.AddAsync(provider);
+                        await db.SaveChangesAsync();
+                    }
+                    return provider;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Exception during provider registration");
+                return default;
+            }
+        }
+
+        public async Task<ProviderSource> UpselectProviderSource(string name)
+        {
+            try
+            {
+                using (var db = dbContextFactory.Create())
+                {
+                    var providerSource = await db.ProviderSources.SingleOrDefaultAsync(x => x.ProviderSourceName == name);
+                    if (providerSource == null)
+                    {
+                        providerSource = new ProviderSource()
+                        {
+                            ProviderSourceName = name
+                        };
+                        await db.ProviderSources.AddAsync(providerSource);
+                        await db.SaveChangesAsync();
+                    }
+                    return providerSource;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Exception during provider source registration");
+                return default;
+            }
+        }
+
+        public async Task<City> UpselectCity(string name)
+        {
+            try
+            {
+                using (var db = dbContextFactory.Create())
+                {
+                    var city = await db.Cities.SingleOrDefaultAsync(x => x.CityName == name);
+                    if (city == null)
+                    {
+                        city = new City()
+                        {
+                            CityName = name
+                        };
+                        await db.Cities.AddAsync(city);
+                        await db.SaveChangesAsync();
+                    }
+                    return city;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Exception during city registration");
                 return default;
             }
         }

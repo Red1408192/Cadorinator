@@ -6,6 +6,7 @@ namespace Cadorinator.ServiceContract.Settings
     {
         int DefaultDelay { get; set; }
         int Reactivity { get; set; }
+        string CSVSeparator { get; set; }
         int PollerTimeSpan { get; set; }
         int SchedulerTimeSpan { get; set; }
         int MaxRequestOffset { get; set; }
@@ -27,6 +28,7 @@ namespace Cadorinator.ServiceContract.Settings
         public int DefaultDelay { get; set; } = 600;
         public int Reactivity { get; set; } = 200;
         public int MaxOperationTries { get; set; } = 8;
+        public string CSVSeparator { get; set; } = "\t";
         public int PollerTimeSpan { get; set; } = 20;
         public int LoggingLevel { get; set; } = 3;
         public int SchedulerTimeSpan { get; set; } = 60;

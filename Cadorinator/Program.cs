@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace Cadorinator.Service
 {
-    partial class Program
+    class Program
     {
         private static ICadorinatorSettings _settings;
         private static IDbContextFactory<MainContext> _dbContextFactory;
@@ -36,14 +36,12 @@ namespace Cadorinator.Service
             {
                 foreach(var op in Operations.GetOperations(DateTime.UtcNow))
                 {
-                    if(!await op.Value.Function(Operations) && op.Value.Tries < _settings.MaxOperationTries)
+                    if(!await op.Execute(Operations) && op.Tries < _settings.MaxOperationTries)
                     {
-                        _logger.Error($"Operation Failed, Id:\"{op.Value.Identifier}\", tried:{op.Value.Tries} times");
-                        op.Value.ProspectedTime = DateTime.UtcNow.AddSeconds(4);
-                        op.Value.Tries += 1;
-                        Operations.AddOperation(op.Value);
+                        _logger.Error($"Operation Failed, Id:\"{op.Identifier}\", tried:{op.Tries} times");
+                        op.Delay(Operations);
                     }
-                    else if(op.Value.Tries >= _settings.MaxOperationTries) _logger.Error($"Operation Aborted, Id:\"{op.Value.Identifier}\", will not be rescheduled");
+                    else if(op.Tries >= _settings.MaxOperationTries) _logger.Error($"Operation Aborted, Id:\"{op.Identifier}\", will not be rescheduled");
                     Operations.Pop(op.Key);
                 }
                 await Task.Delay(_settings.Reactivity);
@@ -63,7 +61,7 @@ namespace Cadorinator.Service
             _dbContextFactory = new DbContextFactory(_settings, _logger);
             _dalService = new DalService(_dbContextFactory, _settings, _logger);
             Operations = new OperationSchedule(_settings.MaxRequestOffset, _logger);
-
+            ProvidersHelper.SyncAsync(_dalService, _settings);
             _providerServices = new IProviderService[]
             {
                 new EighteenTicketV1Service(_dalService, _settings, _logger),
