@@ -52,22 +52,30 @@ namespace Cadorinator.Service
         {
             var startUpLogger = new LoggerConfiguration().WriteTo.File("./log.txt").CreateLogger();
             startUpLogger.Warning("STARTUP CADORINATOR");
+
             _settings = await Settings.LoadAsync(startUpLogger);
             _logger = new LoggerConfiguration()
                 .WriteTo.File(path: _settings.FilePath + "//log.txt",
                 restrictedToMinimumLevel: (LogEventLevel)_settings.LoggingLevel)
                 .CreateLogger();
             _logger.Warning("Startup");
+
             _dbContextFactory = new DbContextFactory(_settings, _logger);
+
             _dalService = new DalService(_dbContextFactory, _settings, _logger);
+
             Operations = new OperationSchedule(_settings.MaxRequestOffset, _logger);
-            ProvidersHelper.SyncAsync(_dalService, _settings);
+
+            await ProvidersHelper.SyncAsync(_dalService, _settings);
+
             _providerServices = new IProviderService[]
             {
                 new EighteenTicketV1Service(_dalService, _settings, _logger),
                 new EighteenTicketV2Service(_dalService, _settings, _logger)
             };
+
             _service = new CadorinatorService(_settings, _providerServices, _dalService, _logger);
+
             startUpLogger.Warning("setup completed");
         }
     }
