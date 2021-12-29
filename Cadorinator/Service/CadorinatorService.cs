@@ -54,14 +54,14 @@ namespace Cadorinator.Infrastructure
                     if (!res) return false;
                     _lastSuccessfullProviderId = providerId.Value;
                 }
-                _logger.Information($"Done, next collection at {DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.PollerTimeSpan)}");
+                _logger.Information($"Done, next collection at {DateTime.UtcNow.AddMinutes(_startUpMode ? 0 : _settings.PollerTimeSpan)}");
 
                 return operationSchedule.AddOperation(new Operation()
                 {
                     Function = (x) => this.CollectSchedulesAsync(x, providerId+1),
                     ActionType = ActionType.CollectSchedules,
                     Identifier = "CS",
-                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.PollerTimeSpan)
+                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 0 : _settings.PollerTimeSpan)
                 }, required: true);
             }
             catch(Exception ex)
@@ -72,7 +72,7 @@ namespace Cadorinator.Infrastructure
                     Function = (x) => this.CollectSchedulesAsync(x, providerId+1),
                     ActionType = ActionType.CollectSchedules,
                     Identifier = "CS",
-                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.PollerTimeSpan)
+                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 0 : _settings.PollerTimeSpan)
                 }, required: true);
             }
         }
@@ -86,7 +86,7 @@ namespace Cadorinator.Infrastructure
                     ActionType = ActionType.CheckSchedules,
                     Function = (x) => CheckSchedulesAsync(timeSpan, x),
                     Identifier = "CHS",
-                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.SchedulerTimeSpan)
+                    ProspectedTime = DateTime.UtcNow.AddMinutes(_startUpMode ? 0 : _settings.SchedulerTimeSpan)
                 }, required: true);
                 int count = 0;
                 foreach (var schedule in await _dalService.ListProjectionsScheduleAsync(timeSpan))
@@ -110,7 +110,7 @@ namespace Cadorinator.Infrastructure
                         }
                     }
                 }
-                _logger.Information($"Completed Scehduleding - {count} operations added - Next:{(DateTime.UtcNow.AddMinutes(_startUpMode ? 1 : _settings.SchedulerTimeSpan))}");
+                _logger.Information($"Completed Scehduleding - {count} operations added - Next:{(DateTime.UtcNow.AddMinutes(_startUpMode ? 0 : _settings.SchedulerTimeSpan))}");
                 return true;
             }
             catch(Exception ex)
