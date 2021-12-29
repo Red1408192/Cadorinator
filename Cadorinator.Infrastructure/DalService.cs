@@ -78,7 +78,7 @@ namespace Cadorinator.Infrastructure
                 {
                     if (await db.ProjectionsSchedules.AnyAsync(x => x.FilmId == schedule.FilmId 
                                                                 && x.ProjectionTimestamp == schedule.ProjectionTimestamp
-                                                                && x.ProviderId == x.ProviderId
+                                                                && x.ProviderId == schedule.ProviderId
                                                                 && x.ThreaterId == schedule.ThreaterId)) return false;
                     await db.ProjectionsSchedules
                         .AddAsync(schedule);
